@@ -8,7 +8,7 @@ from math import atan2, pi, cos, sin
 
 def generate_ascii_pie_chart(data, titel, datasets, fill_pie=True, radius=15, outline_thickness=0.5):
     """
-    Generates an ASCII pie chart from the given data.
+    Generates an ASCII pie chart from the given data, stripping trailing spaces to minimize string length.
 
     Parameters:
     - data (list): List of dictionaries with arbitrary datasets
@@ -19,7 +19,7 @@ def generate_ascii_pie_chart(data, titel, datasets, fill_pie=True, radius=15, ou
     - outline_thickness (float): Thickness of the outline (default: 0.5)
 
     Returns:
-    - str: The pie chart as a string
+    - str: The pie chart as a string with minimized length
     """
     totals = {key: sum(d.get(key, 0) for d in data if d.get(key) is not None) for key in datasets.keys()}
     total_sum = sum(totals.values())
@@ -27,7 +27,8 @@ def generate_ascii_pie_chart(data, titel, datasets, fill_pie=True, radius=15, ou
         raise ValueError("The sum of values cannot be 0")
 
     shares = {key: (value / total_sum) * 360 for key, value in totals.items()}
-    output = f"{titel}\n  Total: {total_sum:.2f}\n"
+    output = f"{titel}\n"
+    output += f"  Total: {total_sum:.2f}\n"
     for key, value in totals.items():
         output += f"  {key.capitalize()}: {value:.2f} ({(value / total_sum * 100):.1f}%)\n"
     output += "\nLegende:\n"
@@ -84,12 +85,12 @@ def generate_ascii_pie_chart(data, titel, datasets, fill_pie=True, radius=15, ou
                     chart[y][x] = symbol
 
     for row in chart:
-        output += ''.join(row) + '\n'
-    return output
+        output += ''.join(row).rstrip() + '\n'
+    return output.rstrip()  # Remove any trailing newlines at the end
 
 def generate_ascii_graph(data, titel, datasets, expand=False, x_scale=True, bar_mode=False, chart_type='line', fill_pie=True, radius=15, outline_thickness=0.5, graph_height=10, graph_width=None):
     """
-    Generates an ASCII graph (line, bar, or pie) from the given data with scaling options for line charts.
+    Generates an ASCII graph (line, bar, or pie) from the given data, stripping trailing spaces to minimize string length.
 
     Parameters:
     - data (list): List of dictionaries with arbitrary datasets
@@ -106,7 +107,7 @@ def generate_ascii_graph(data, titel, datasets, expand=False, x_scale=True, bar_
     - graph_width (int or None): Width of the graph for line/bar; if None, uses data length (default: None)
 
     Returns:
-    - str: The graph as a string
+    - str: The graph as a string with minimized length
     """
     if chart_type.lower() == 'pie':
         return generate_ascii_pie_chart(data, titel, datasets, fill_pie, radius, outline_thickness)
@@ -132,7 +133,11 @@ def generate_ascii_graph(data, titel, datasets, expand=False, x_scale=True, bar_
                       for d in data if any(k in d and d[k] is not None for k in datasets.keys())]
     average = sum(valid_averages) / len(valid_averages) if valid_averages else 0
 
-    output = f"{titel}\n  Maximum: {maximum}\n  Average: {average:.2f}\n  Minimum: {minimum}\n\n"
+    output = f"{titel}\n"
+    output += f"  Maximum: {maximum}\n"
+    output += f"  Average: {average:.2f}\n"
+    output += f"  Minimum: {minimum}\n"
+    output += "\n"
 
     # Set graph dimensions
     lines = max(graph_height, 5)  # Minimum 5 lines for readability
@@ -174,7 +179,7 @@ def generate_ascii_graph(data, titel, datasets, expand=False, x_scale=True, bar_
     # Generate the graph
     for line in range(lines, -1, -1):
         y_value = raster * line + expandwert
-        output += f"{y_value:6.0f}|"
+        line_str = f"{y_value:6.0f}|"
         for d in scaled_data:
             char = " "
             if bar_mode:
@@ -193,17 +198,19 @@ def generate_ascii_graph(data, titel, datasets, expand=False, x_scale=True, bar_
                             closest_key = key
                 if closest_key:
                     char = datasets[closest_key]
-            output += char
-        output += "\n"
+            line_str += char
+        output += line_str.rstrip() + "\n"
 
-    output += "      +"
+    # X-axis
+    x_axis = "      +"
     if x_scale:
         scale_str = f"0{'-' * (graph_width - len(str(graph_width - 1)) - 1)}{graph_width - 1}"
-        output += scale_str
+        x_axis += scale_str
     else:
-        output += "-" * graph_width
-    output += "\n"
-    return output
+        x_axis += "-" * graph_width
+    output += x_axis.rstrip() + "\n"
+
+    return output.rstrip()  # Remove any trailing newlines at the end
 
 # Example Usage
 if __name__ == "__main__":
@@ -220,6 +227,10 @@ if __name__ == "__main__":
     ]
     datasets_custom2 = {'temp': '+'}
 
+    # Pie Chart Example
+    graph_test_pie = generate_ascii_graph(test_data, "Test Graph (Pie, Default)", datasets_test, chart_type='pie', fill_pie=False)
+    print(graph_test_pie)
+
     # Line Graph with Default Scaling
     graph_test_line = generate_ascii_graph(test_data, "Test Graph (Line, Default)", datasets_test, chart_type='line')
     print(graph_test_line)
@@ -228,10 +239,10 @@ if __name__ == "__main__":
     graph_test_line_scaled = generate_ascii_graph(test_data, "Test Graph (Line, Scaled H15 W20)", datasets_test, chart_type='line', graph_height=15, graph_width=20)
     print(graph_test_line_scaled)
 
-    # Line Graph with Custom Scaling (Height=5, Width=10)
-    graph_custom_line_scaled = generate_ascii_graph(custom_data, "Custom Graph (Line, Scaled H5 W10)", datasets_custom, chart_type='line', graph_height=5, graph_width=10)
+    # Line Graph with Custom Scaling (Height=10, Width=50)
+    graph_custom_line_scaled = generate_ascii_graph(custom_data, "Custom Graph (Line, Scaled H10 W50)", datasets_custom, chart_type='line', graph_height=10, graph_width=50)
     print(graph_custom_line_scaled)
 
     # Line Graph with Custom Scaling for custom_data2
-    graph_custom2_line_scaled = generate_ascii_graph(custom_data2, "Custom Graph 2 (Line, Scaled H8 W15)", datasets_custom2, chart_type='line', graph_height=12, graph_width=70)
+    graph_custom2_line_scaled = generate_ascii_graph(custom_data2, "Custom Graph 2 (Line, Scaled H12 W70)", datasets_custom2, chart_type='line', graph_height=12, graph_width=70)
     print(graph_custom2_line_scaled)
